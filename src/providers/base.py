@@ -8,6 +8,6 @@ class AbstractMessageProvider(ABC):
     name: str
 
     @abstractmethod
-    def send_message(self, log: MessageLog) -> MessageLog:
+    def send_message(self, log: MessageLog, *args, **kwargs) -> MessageLog:
         ...
 
