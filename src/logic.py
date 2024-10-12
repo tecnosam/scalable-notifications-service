@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from hashlib import sha256
+import json
 
 from src.schema import (
     Trigger,
@@ -52,10 +53,9 @@ class SMSMessageTransmitter(MessageTransmitter):
                 trigger.content
             ),
             provider=provider.name,
-            provider_id=provider_id
         )
 
-        log = provider.send_message(log)
+        log = provider.send_message(log, raw_message=trigger.content)
         # TODO: persist log
         return log
 
@@ -77,10 +77,9 @@ class MailMessageTransmitter(MessageTransmitter):
                 trigger.content
             ),
             provider=provider.name,
-            provider_id=provider_id
         )
 
-        log = provider.send_message(log)
+        log = provider.send_message(log, raw_message=trigger.content)
         # TODO: persist log
         return log 
 
@@ -99,7 +98,6 @@ class TemplatedMailMessageTransmitter(MessageTransmitter):
             content_type=MessageContentType.TEMPLATED,
             destination=trigger.email,
             provider=provider.name,
-            provider_id=provider_id,
             template_id=trigger.template_id,
             template_data=trigger.template_data
         )
@@ -110,7 +108,7 @@ class TemplatedMailMessageTransmitter(MessageTransmitter):
         return log
 
 
-class SMSMessageTransmitter(MessageTransmitter):
+class PushNotificationMessageTransmitter(MessageTransmitter):
 
     async def transmit(
         self,
@@ -118,17 +116,18 @@ class SMSMessageTransmitter(MessageTransmitter):
         provider: AbstractMessageProvider
     ):
 
+        content = json.dumps(trigger.content)
+
         log = MessageLog(
             user_id=trigger.user_id,
             channel=MessageChannel.PUSH,
             content_type=MessageContentType.JSON,
             destination=trigger.device_token,
             provider=provider.name,
-            provider_id=provider_id,
-            metadata=trigger.content
+            content_hash=self.hash_message(content),
         )
 
-        log = provider.send_message(log)
+        log = provider.send_message(log, raw_message=trigger.content)
         # TODO: persist log
         return log 
 
