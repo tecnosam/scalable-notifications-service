@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 class Trigger(BaseModel):
 
-    user_id: Optional[UUID]
+    user_id: Optional[UUID] = None
 
 
 class SMSTrigger(Trigger):
