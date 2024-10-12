@@ -24,7 +24,7 @@ class MessageContentType(Enum):
 class MessageStatus(Enum):
 
     PENDING   = "pending"
-    DELIVERED = "delivered"
+    SENT      = "SENT"
     FAILED    = "failed"
 
 
