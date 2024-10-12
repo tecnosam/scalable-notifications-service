@@ -1,7 +1,25 @@
 import structlog
 from uuid import uuid4
 import asyncio
+import json
 from confluent_kafka import Consumer, KafkaException
+
+from src.schema import (
+    SMSTrigger,
+    MailTrigger,
+    MailTemplateTrigger,
+    PushNotificationTrigger
+)
+
+from src.logic import (
+    MailMessageTransmitter,
+    SMSMessageTransmitter,
+    PushNotificationMessageTransmitter
+)
+
+from src.providers.mail.smtp import SMTPMailMessageProvider
+from src.providers.sms.twilio import TwilioSMSMessageProvider
+from src.providers.push.firebase import FirebasePushNotificationMessageProvider
 
 from src.settings import KAFKA_BROKER_URL
 
@@ -26,9 +44,21 @@ async def consumer_handler():
 
     # Subscribe to multiple topics
     topics = {
-        "sms-notifications": [],
-        "email-notifications": [],
-        "push-notifications": []
+        "sms-notifications": [
+            SMSTrigger,
+            TwilioSMSMessageProvider(),
+            SMSMessageTransmitter()
+        ],
+        "email-notifications": [
+            MailTrigger,
+            SMTPMailMessageProvider(),
+            MailMessageTransmitter()
+        ],
+        "push-notifications": [
+            PushNotificationTrigger,
+            FirebasePushNotificationMessageProvider(),
+            PushNotificationMessageTransmitter()
+        ]
     }
     consumer.subscribe(list(topics.keys()))
 
@@ -56,14 +86,14 @@ async def consumer_handler():
             )
 
             logger.info(
-                "KafkaConsumer {consumer_id}> Notification Sent",
+                f"KafkaConsumer {consumer_id}> Notification Sent",
                 data=data,
                 response=response.model_dump(),
                 topic=topic
             )
 
         except KeyboardInterrupt:
-            logger.info("KafkaConsumer> Interrupt from OS, Closing connection...")
+            logger.info(f"KafkaConsumer {consumer_id}> Interrupt from OS, Closing connection...")
             consumer.close()
             break
         except KafkaException as exc:
